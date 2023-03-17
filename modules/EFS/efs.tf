@@ -1,5 +1,5 @@
 # create key from key management system
-resource "aws_kms_key" "ACS-kms" {
+resource "aws_kms_key" "TCS-kms" {
   description = "KMS key "
   policy      = <<EOF
   {
@@ -24,6 +24,7 @@ resource "aws_kms_alias" "alias" {
   target_key_id = aws_kms_key.ACS-kms.key_id
 }
 
+
 # create Elastic file system
 resource "aws_efs_file_system" "ACS-efs" {
   encrypted  = true
@@ -37,22 +38,19 @@ resource "aws_efs_file_system" "ACS-efs" {
   )
 }
 
-
 # set first mount target for the EFS 
 resource "aws_efs_mount_target" "subnet-1" {
   file_system_id  = aws_efs_file_system.ACS-efs.id
-  subnet_id       = aws_subnet.private[0].id
-  security_groups = [aws_security_group.datalayer-sg.id]
+  subnet_id       = var.efs-subnet-1
+  security_groups = var.efs-sg
 }
-
 
 # set second mount target for the EFS 
 resource "aws_efs_mount_target" "subnet-2" {
   file_system_id  = aws_efs_file_system.ACS-efs.id
-  subnet_id       = aws_subnet.private[1].id
-  security_groups = [aws_security_group.datalayer-sg.id]
+  subnet_id       = var.efs-subnet-2
+  security_groups = var.efs-sg
 }
-
 
 # create access point for wordpress
 resource "aws_efs_access_point" "wordpress" {
@@ -75,7 +73,6 @@ resource "aws_efs_access_point" "wordpress" {
   }
 
 }
-
 
 # create access point for tooling
 resource "aws_efs_access_point" "tooling" {
