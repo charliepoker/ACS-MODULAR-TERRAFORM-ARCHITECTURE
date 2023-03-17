@@ -1,7 +1,3 @@
-provider "aws" {
-  region = var.region
-}
-
 
 # Create VPC
 resource "aws_vpc" "main" {
@@ -9,7 +5,14 @@ resource "aws_vpc" "main" {
   enable_dns_support             = var.enable_dns_support
   enable_dns_hostnames           = var.enable_dns_hostnames
   enable_classiclink             = var.enable_classiclink
-  enable_classiclink_dns_support = var.enable_classiclink_dns_support
+  enable_classiclink_dns_support = var.enable_dns_support
+
+  tags = merge(
+    var.tags,
+    {
+      Name = format("%s-VPC", var.name)
+    }
+  )
 }
 
 # Get list of availability zones
@@ -26,7 +29,7 @@ data "aws_availability_zones" "available" {
 resource "aws_subnet" "public" {
   count                   = var.preferred_number_of_public_subnets == null ? length(data.aws_availability_zones.available.names) : var.preferred_number_of_public_subnets
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index)
+  cidr_block              = var.public_subnets[count.index]
   map_public_ip_on_launch = true
   availability_zone       = data.aws_availability_zones.available.names[count.index]
 
@@ -46,8 +49,8 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "private" {
   count                   = var.preferred_number_of_private_subnets == null ? length(data.aws_availability_zones.available.names) : var.preferred_number_of_private_subnets
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index + 2)
-  map_public_ip_on_launch = true
+  cidr_block              = var.private_subnets[count.index]
+  map_public_ip_on_launch = false
   availability_zone       = data.aws_availability_zones.available.names[count.index]
 
   tags = merge(
